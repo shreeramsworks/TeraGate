@@ -119,31 +119,31 @@ export default function TeraGet() {
           
           <div className="space-y-4">
             <motion.h1 
-              className="text-7xl sm:text-8xl md:text-9xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-fuchsia-500 via-pink-500 to-rose-500"
+              className="text-5xl sm:text-7xl md:text-9xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-fuchsia-500 via-pink-500 to-rose-500"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             >
               TeraGet
             </motion.h1>
-            <p className="text-neutral-500 text-xl font-medium tracking-[0.2em] uppercase">
+            <p className="text-neutral-500 text-lg sm:text-xl font-medium tracking-[0.2em] uppercase">
               Instant Terabox Downloads
             </p>
           </div>
         </header>
 
         <section className="relative group w-full">
-          <div className="absolute -inset-1 bg-gradient-to-r from-fuchsia-600/20 to-pink-600/20 rounded-[2.5rem] blur-xl opacity-0 group-hover:opacity-100 transition duration-1000" />
-          <div className="relative bg-neutral-900/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-3 flex flex-col md:flex-row gap-3 shadow-2xl overflow-hidden">
-            <div className="relative flex-1 flex items-center px-4">
-              <Link2 size={24} className="text-neutral-600 shrink-0 ml-2" />
+          <div className="absolute -inset-1 bg-gradient-to-r from-fuchsia-600/20 to-pink-600/20 rounded-[1.5rem] sm:rounded-[2.5rem] blur-xl opacity-0 group-hover:opacity-100 transition duration-1000" />
+          <div className="relative bg-neutral-900/40 backdrop-blur-3xl border border-white/5 rounded-[1.5rem] sm:rounded-[2.5rem] p-2 sm:p-3 flex flex-col md:flex-row gap-2 sm:gap-3 shadow-2xl overflow-hidden">
+            <div className="relative flex-1 flex items-center px-2 sm:px-4">
+              <Link2 size={24} className="text-neutral-600 shrink-0 ml-1 sm:ml-2" />
               <input
                 ref={inputRef}
                 value={videoId}
                 onChange={(e) => setVideoId(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && fetchMeta()}
-                placeholder="Paste your Terabox link here..."
-                className="w-full bg-transparent border-none px-4 py-6 text-xl outline-none placeholder:text-neutral-700 font-medium text-neutral-200"
+                placeholder="Paste link here..."
+                className="w-full bg-transparent border-none px-2 sm:px-4 py-4 sm:py-6 text-lg sm:text-xl outline-none placeholder:text-neutral-700 font-medium text-neutral-200"
               />
               {videoId && (
                 <button onClick={() => setVideoId("")} className="p-2 text-neutral-600 hover:text-white transition-colors">
@@ -154,9 +154,9 @@ export default function TeraGet() {
             <button
               onClick={fetchMeta}
               disabled={loading}
-              className="bg-white text-black hover:bg-fuchsia-500 hover:text-white px-12 py-6 rounded-[1.8rem] font-black text-xl transition-all duration-500 flex items-center justify-center gap-3 whitespace-nowrap disabled:opacity-50 active:scale-95 shadow-xl"
+              className="bg-white text-black hover:bg-fuchsia-500 hover:text-white px-8 sm:px-12 py-4 sm:py-6 rounded-[1rem] sm:rounded-[1.8rem] font-black text-lg sm:text-xl transition-all duration-500 flex items-center justify-center gap-3 whitespace-nowrap disabled:opacity-50 active:scale-95 shadow-xl"
             >
-              {loading ? <Loader2 className="animate-spin" size={28} /> : <DownloadCloud size={28} />}
+              {loading ? <Loader2 className="animate-spin" size={24} /> : <DownloadCloud size={24} />}
               {loading ? "Processing..." : "Get Video"}
             </button>
           </div>
@@ -220,9 +220,7 @@ export default function TeraGet() {
 
                 <div className="pt-4">
                   <a
-                    href={data.link}
-                    target="_blank"
-                    rel="noreferrer"
+                    href={`/api/download?url=${encodeURIComponent(data.link)}&name=${encodeURIComponent(data.name)}`}
                     className="group relative inline-flex items-center justify-center gap-4 px-10 py-6 bg-white text-black rounded-[2rem] font-black text-2xl transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] overflow-hidden w-full shadow-2xl"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-fuchsia-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
