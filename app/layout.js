@@ -13,39 +13,50 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "TeraGet - Inspect Terabox Videos",
+  title: "TeraGet | 100% Free Terabox Video Downloader - No Login Required",
   description:
-    "Inspect, preview, and download Terabox videos. Extract metadata, view thumbnails, and get direct download links from share links.",
+    "Fastest and most secure way to download Terabox videos. No login, no ads, high-speed direct downloads. Simply paste your Terashare or Terabox link and get your video instantly.",
   keywords: [
-    "terabox",
-    "terashare",
-    "video inspector",
-    "metadata extractor",
-    "download",
-    "preview",
-    "video analysis",
+    "terabox downloader",
+    "terashare downloader",
+    "terabox video download",
+    "direct download terabox",
+    "terabox without login",
+    "online video downloader",
+    "terabox link to mp4",
+    "1024terabox downloader"
   ],
-  authors: [],
-  robots: "index, follow",
+  authors: [{ name: "TeraGet Team" }],
+  creator: "TeraGet",
+  publisher: "TeraGet",
+  robots: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
+  alternates: {
+    canonical: "https://teraget.vercel.app",
+  },
   openGraph: {
-    title: "TeraGet - Inspect Terabox Videos",
-    description:
-      "Inspect, preview, and download Terabox videos with metadata extraction and direct download links.",
+    title: "TeraGet - Unlimited Terabox & Terashare Video Downloader",
+    description: "The premium, minimalist tool to extract and download Terabox videos directly to your device with one click.",
     type: "website",
     locale: "en_US",
     siteName: "TeraGet",
-    images: ["/api/og"],
+    images: [
+      {
+        url: "/og-image.png", 
+        width: 1200,
+        height: 630,
+        alt: "TeraGet - Premium Terabox Downloader",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "TeraGet - Inspect Terabox Videos",
-    description:
-      "Inspect, preview, and download Terabox videos with metadata extraction.",
-    images: ["/api/og"],
+    title: "TeraGet | Download Terabox Videos Instantly",
+    description: "Secure, fast, and free Terabox video downloader. No account needed.",
+    images: ["/og-image.png"],
   },
   icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
+    icon: "/favicon.png",
+    apple: "/favicon.png",
   },
   manifest: "/manifest.json",
 };
@@ -53,9 +64,9 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark scroll-smooth">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0a0a0a]`}
       >
         <ErrorBoundary>
           {children}
