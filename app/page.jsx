@@ -9,6 +9,10 @@ export default function TeraGet() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [data, setData] = useState(null);
+  const [downloading, setDownloading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [totalSize, setTotalSize] = useState(0);
+  const [downloadedSize, setDownloadedSize] = useState(0);
   const [isClient, setIsClient] = useState(false);
   const inputRef = useRef(null);
 
@@ -70,12 +74,63 @@ export default function TeraGet() {
         name: file.filename,
         link: file.download_link,
         size: file.size || humanFileSize(file.size_bytes),
+        sizeBytes: file.size_bytes,
         thumb: file.thumbnails?.['850x580'] || file.thumbnails?.['360x270'] || Object.values(file.thumbnails || {})[0]
       });
     } catch (err) {
       setError(err.message || "Failed to process link.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const startDownload = async () => {
+    if (!data) return;
+    setDownloading(true);
+    setProgress(0);
+    setDownloadedSize(0);
+    setTotalSize(data.sizeBytes || 0);
+
+    const downloadUrl = `/api/download?url=${encodeURIComponent(data.link)}&name=${encodeURIComponent(data.name)}`;
+
+    try {
+      const response = await fetch(downloadUrl);
+      if (!response.ok) throw new Error("Download failed");
+
+      const reader = response.body.getReader();
+      const contentLen = +response.headers.get("Content-Length");
+      if (contentLen) setTotalSize(contentLen);
+
+      const chunks = [];
+      let receivedBytes = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        chunks.push(value);
+        receivedBytes += value.length;
+        setDownloadedSize(receivedBytes);
+        
+        if (contentLen || totalSize) {
+          const currentTotal = contentLen || totalSize;
+          setProgress(Math.round((receivedBytes / currentTotal) * 100));
+        }
+      }
+
+      const blob = new Blob(chunks, { type: response.headers.get("Content-Type") || "video/mp4" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.name;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      setError("Download failed: " + err.message);
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -219,14 +274,40 @@ export default function TeraGet() {
                 </div>
 
                 <div className="pt-4">
-                  <a
-                    href={`/api/download?url=${encodeURIComponent(data.link)}&name=${encodeURIComponent(data.name)}`}
-                    className="group relative inline-flex items-center justify-center gap-4 px-10 py-6 bg-white text-black rounded-[2rem] font-black text-2xl transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] overflow-hidden w-full shadow-2xl"
+                  <button
+                    onClick={startDownload}
+                    disabled={downloading}
+                    className="group relative inline-flex items-center justify-center gap-4 px-10 py-6 bg-white text-black rounded-[2rem] font-black text-2xl transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] overflow-hidden w-full shadow-2xl disabled:opacity-75 disabled:cursor-not-allowed"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-fuchsia-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <DownloadCloud size={28} className="relative z-10 transition-transform group-hover:-translate-y-1" />
-                    <span className="relative z-10 group-hover:text-white transition-colors duration-300">Download Video Now</span>
-                  </a>
+                    {downloading ? (
+                      <Loader2 className="relative z-10 animate-spin text-fuchsia-500" size={28} />
+                    ) : (
+                      <DownloadCloud size={28} className="relative z-10 transition-transform group-hover:-translate-y-1" />
+                    )}
+                    <span className="relative z-10 group-hover:text-white transition-colors duration-300">
+                      {downloading ? `Downloading... ${progress}%` : "Download Video Now"}
+                    </span>
+                  </button>
+
+                  {downloading && (
+                    <div className="mt-6 space-y-3">
+                      <div className="w-full h-3 bg-neutral-800 rounded-full overflow-hidden border border-white/5">
+                        <motion.div 
+                          className="h-full bg-gradient-to-r from-fuchsia-500 via-pink-500 to-rose-500"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${progress}%` }}
+                          transition={{ duration: 0.2 }}
+                        />
+                      </div>
+                      <div className="flex justify-between items-center text-[10px] font-black tracking-widest text-neutral-500 uppercase">
+                        <span>Progress</span>
+                        <span className="text-white">
+                          {humanFileSize(downloadedSize)} / {humanFileSize(totalSize)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>

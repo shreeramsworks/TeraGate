@@ -11,10 +11,13 @@ export async function GET(request) {
 
   try {
     // Fetch the video from the CDN with Terabox-specific headers
+    // Using a more robust User-Agent and potentially better range handling if needed
     const response = await fetch(videoUrl, {
       headers: {
         'Referer': 'https://www.terabox.com/',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        'Accept': '*/*',
+        'Connection': 'keep-alive',
       },
     });
 
@@ -33,11 +36,21 @@ export async function GET(request) {
     const contentLength = response.headers.get('Content-Length');
     if (contentLength) {
       headers.set('Content-Length', contentLength);
+      // Ensure X-Content-Length is also set for some browsers/tools
+      headers.set('X-Content-Length', contentLength);
     }
 
+    // Add headers to prevent caching and allow chunked transfer
+    headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    headers.set('Pragma', 'no-cache');
+    headers.set('Expires', '0');
+
     // Optimization: Stream the response body directly to the client
-    // This allows downloading extremely large files smoothly without loading them into memory
-    return new Response(response.body, {
+    // We use a TransformStream to ensure the pipe is as fast as possible in Next.js/Edge environments
+    const { readable, writable } = new TransformStream();
+    response.body.pipeTo(writable);
+
+    return new Response(readable, {
       status: 200,
       headers,
     });
