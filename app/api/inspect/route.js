@@ -29,7 +29,7 @@ export async function GET(request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const videoUrl = searchParams.get('url');
+  let videoUrl = searchParams.get('url');
 
   if (!videoUrl) {
     return NextResponse.json(
@@ -38,53 +38,71 @@ export async function GET(request) {
     );
   }
 
-  // Sanitize and validate the URL (ensure it's a Terabox link)
-  const isTerabox = /(?:terabox|terashare|1024tera|teraboxcdn)/.test(videoUrl);
-  if (!isTerabox) {
-    return NextResponse.json(
-      { status: 'error', message: 'Invalid domain' },
-      { status: 400 }
-    );
+  // Ensure the URL is properly formatted for the API
+  if (!videoUrl.startsWith('http')) {
+    videoUrl = 'https://terabox.com/s/' + videoUrl;
   }
 
   try {
-    // Phase 1: Get file metadata and session details
+    // Stage 1: Call the Dapunta extraction API
     const res = await fetch('https://teradl-api.dapuntaratya.com/generate_file', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
       },
-      body: JSON.stringify({ url: videoUrl })
+      body: JSON.stringify({ url: videoUrl.trim() })
     });
     
-    const rawData = await res.json();
-    
-    if (rawData.status !== 'success' || !rawData.list?.[0]) {
-       return NextResponse.json({ status: 'error', message: 'Link not found or expired.' });
+    if (!res.ok) {
+       return NextResponse.json({ status: 'error', message: `Upstream error (${res.status})` });
     }
 
+    const rawData = await res.json();
+    console.log('API Step 1 Response:', rawData.status);
+    
+    if (rawData.status !== 'success' || !rawData.list || rawData.list.length === 0) {
+       return NextResponse.json({ 
+         status: 'error', 
+         message: 'The link could not be processed. It may be private or deleted.' 
+       });
+    }
+
+    // Stage 2: Target the largest or first file for high-speed link generation
     const file = rawData.list[0];
     
-    // Phase 2: Generate the ACTUAL high-speed download link
     const linkRes = await fetch('https://teradl-api.dapuntaratya.com/generate_link', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify({
         uk: rawData.uk,
         shareid: rawData.shareid,
         timestamp: rawData.timestamp,
         sign: rawData.sign,
-        js_token: rawData.js_token, // Critical: pass the token from Phase 1
-        cookie: rawData.cookie,     // Critical: pass the cookie session
+        js_token: rawData.js_token,
+        cookie: rawData.cookie,
         fs_id: file.fs_id
       })
     });
 
+    if (!linkRes.ok) {
+       return NextResponse.json({ status: 'error', message: 'Failed to generate high-speed link.' });
+    }
+
     const linkData = await linkRes.json();
+    console.log('API Step 2 Response:', linkData.status);
     
-    // We prioritize the 'fast' link (url_3) according to the reference
-    const finalDownloadLink = linkData.download_link?.url_3 || linkData.download_link?.url_2 || linkData.download_link?.url_1 || '';
+    // Prioritize mirrored CDN links (url_3 is fastest, then url_2, then url_1)
+    const dl = linkData.download_link;
+    const finalDownloadLink = dl?.url_3 || dl?.url_2 || dl?.url_1 || '';
+
+    if (!finalDownloadLink) {
+       return NextResponse.json({ status: 'error', message: 'Download link generation failed.' });
+    }
 
     return NextResponse.json({
       status: 'success',
@@ -93,7 +111,7 @@ export async function GET(request) {
         size_bytes: file.size,
         size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
         download_link: finalDownloadLink,
-        thumbnails: { '850x580': file.image }
+        thumbnails: { '850x580': file.image || '' }
       }]
     });
   } catch (err) {

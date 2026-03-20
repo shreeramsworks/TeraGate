@@ -24,12 +24,17 @@ export default function TeraGet() {
     if (!input) return "";
     try {
       const trimmed = input.trim();
+      // Handle shortened surl format (e.g. cmi8P-_NCAHAzxj7MtzZAw)
+      if (!trimmed.includes("/") && trimmed.length > 10) return trimmed;
+      
       const urlMatch = trimmed.match(
-        /(?:https?:\/\/(?:www\.)?(?:terabox|terasharelink|terashare|1024tera|teraboxcdn)(?:\.(?:com|net|org|app|cn)))\/s\/([^/?#]+)/i
+        /(?:https?:\/\/(?:www\.)?(?:terabox|terasharelink|terashare|1024tera|teraboxcdn|nephobox|4shared)(?:\.(?:com|net|org|app|cn)))\/s\/([^/?#]+)/i
       );
       if (urlMatch && urlMatch[1]) return urlMatch[1];
+      
       const genericMatch = trimmed.match(/\/s\/([^/?#]+)/i);
       if (genericMatch && genericMatch[1]) return genericMatch[1];
+      
       return trimmed.replace(/\/+$/, "");
     } catch (e) {
       return input.trim();
