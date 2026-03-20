@@ -87,51 +87,22 @@ export default function TeraGet() {
   const startDownload = async () => {
     if (!data) return;
     setDownloading(true);
-    setProgress(0);
-    setDownloadedSize(0);
-    setTotalSize(data.sizeBytes || 0);
-
+    
+    // Instead of slow-reading as a blob (which uses extra RAM and waits for completion),
+    // we use the 'anchor download' method combined with the 'streaming proxy' we built.
+    // This starts the browser's NATIVE high-speed download engine immediately.
+    
     const downloadUrl = `/api/download?url=${encodeURIComponent(data.link)}&name=${encodeURIComponent(data.name)}`;
-
-    try {
-      const response = await fetch(downloadUrl);
-      if (!response.ok) throw new Error("Download failed");
-
-      const reader = response.body.getReader();
-      const contentLen = +response.headers.get("Content-Length");
-      if (contentLen) setTotalSize(contentLen);
-
-      const chunks = [];
-      let receivedBytes = 0;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        chunks.push(value);
-        receivedBytes += value.length;
-        setDownloadedSize(receivedBytes);
-        
-        if (contentLen || totalSize) {
-          const currentTotal = contentLen || totalSize;
-          setProgress(Math.round((receivedBytes / currentTotal) * 100));
-        }
-      }
-
-      const blob = new Blob(chunks, { type: response.headers.get("Content-Type") || "video/mp4" });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = data.name;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (err) {
-      setError("Download failed: " + err.message);
-    } finally {
-      setDownloading(false);
-    }
+    
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.setAttribute("download", data.name);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Briefly show the downloading state, then reset since the browser takes over
+    setTimeout(() => setDownloading(false), 3000);
   };
 
   if (!isClient) return null;
@@ -286,28 +257,13 @@ export default function TeraGet() {
                       <DownloadCloud size={28} className="relative z-10 transition-transform group-hover:-translate-y-1" />
                     )}
                     <span className="relative z-10 group-hover:text-white transition-colors duration-300">
-                      {downloading ? `Downloading... ${progress}%` : "Download Video Now"}
+                      {downloading ? "Starting Download..." : "Download Video Now"}
                     </span>
                   </button>
 
-                  {downloading && (
-                    <div className="mt-6 space-y-3">
-                      <div className="w-full h-3 bg-neutral-800 rounded-full overflow-hidden border border-white/5">
-                        <motion.div 
-                          className="h-full bg-gradient-to-r from-fuchsia-500 via-pink-500 to-rose-500"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${progress}%` }}
-                          transition={{ duration: 0.2 }}
-                        />
-                      </div>
-                      <div className="flex justify-between items-center text-[10px] font-black tracking-widest text-neutral-500 uppercase">
-                        <span>Progress</span>
-                        <span className="text-white">
-                          {humanFileSize(downloadedSize)} / {humanFileSize(totalSize)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
+                  <p className="mt-4 text-center text-[10px] font-black tracking-widest text-neutral-500 uppercase">
+                    Bypassing Wait — Direct CDN Link
+                  </p>
                 </div>
               </div>
             </motion.div>
